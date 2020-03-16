@@ -1,12 +1,25 @@
-from typing import List
 from collections import namedtuple
+from typing import List
 
 from binaryninja import (BinaryReader, BinaryView, PluginCommand, Section,
-                         log_info)
+                         Type, log_info)
 
-MIGSubsystem = namedtuple('MIGSubsystem', 'addr subsystem num_entries ')
 
-class MigFinder(object):
+class MIGSubsystem:
+    def __init__(self, addr, subsystem, num_entries):
+        self.addr = addr
+        self.subsystem = subsystem
+        self.num_entries = num_entries
+
+    def __repr__(self):
+        return "MIGSubsytem(addr=%s, subsystem=%d, num_entries=%d)" % (
+            hex(self.addr),
+            self.subsystem,
+            self.num_entries,
+        )
+
+
+class MigFinder:
     """
     Searches a programs DATA and CONST sections looking
     for possible Mig Subsytem handler's using data heuristics
@@ -16,6 +29,9 @@ class MigFinder(object):
     def __init__(self, bv: BinaryView):
         self._bv = bv
         self._br = BinaryReader(bv)
+
+    def __repr__(self):
+        return
 
     def find(self) -> List[MIGSubsystem]:
         """
@@ -62,10 +78,10 @@ class MigFinder(object):
         reserved = br.read64()
         if not reserved == 0:
             return None
-        return MIGSubsystem(addr, first, second-first)
+        return MIGSubsystem(addr, first, second - first)
 
 
-class MigCreator(object):
+class MigCreator:
     """
     Creates unique Mig subsystem structures based
     on the MIG subsystem ID and number of handlers found.
@@ -74,33 +90,39 @@ class MigCreator(object):
     def __init__(self, bv: BinaryView):
         self._bv = bv
 
-    def create(self, migs: List[int]):
+    def create(self, migs: List[MIGSubsystem]):
         """
         Create Mig Subsytem structures at the addresses
-        found in `migs`.
+        found in `migs`, rename server functions, stub functions
+        and handler functions.
         """
         pass
 
 
-def find_mig_handlers(bv: BinaryView):
+def find_mig_subsystems(bv: BinaryView):
     mf = MigFinder(bv)
-    mc = MigCreator(bv)
     migs = mf.find()
     if len(migs) == 0:
         return
+
+    mc = MigCreator(bv)
     mc.create(migs)
 
 
 def is_mig_valid(bv: BinaryView):
-    if "mac" not in bv.platform.name:
+    if bv.platform is None or "mac" not in bv.platform.name or bv.get_symbols_by_name("_NDR_record") is None:
         return False
-    if bv.get_symbols_by_name("_NDR_record") is None:
-        return False
+    else:
+        return True
+
+
+def create_mig_subsystem_type(subsystem: int, num_handlers: int) -> Type:
+    pass
 
 
 PluginCommand.register(
     "MigFinder",
-    "Find MIG IPC Server Handlers",
-    find_mig_handlers,
+    "Find MIG IPC Server Subsystems",
+    find_mig_subsystems,
     is_valid=is_mig_valid,
 )
