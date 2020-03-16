@@ -1,4 +1,3 @@
-from collections import namedtuple
 from typing import List, Optional
 
 from binaryninja import (BinaryReader, BinaryView, PluginCommand, Section,
