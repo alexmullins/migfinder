@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import List
+from typing import List, Optional
 
 from binaryninja import (BinaryReader, BinaryView, PluginCommand, Section,
                          Type, log_info)
@@ -49,12 +49,12 @@ class MigFinder:
             start = section.start
             end = section.end
             for addr in range(start, end, 8):
-                migsubsystem = self._is_valid(addr)
+                migsubsystem = self._get_subsystem_at(addr)
                 if migsubsystem is not None:
                     found.append(migsubsystem)
         return found
 
-    def _is_valid(self, addr) -> bool:
+    def _get_subsystem_at(self, addr) -> Optional[MIGSubsystem]:
         bv = self._bv
         br = self._br
         br.seek(addr)
